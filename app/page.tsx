@@ -1,11 +1,5 @@
 'use client';
 import React, { useState } from "react";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 export default function Home() {
   const [email, setEmail] = useState("");
@@ -16,18 +10,6 @@ export default function Home() {
     e.preventDefault();
     setStatus("Saving...");
 
-    const { error } = await supabase.from("waitlist").insert({
-      email,
-      name,
-      source: "landing_v1",
-      consent: true,
-    });
-
-    if (error) {
-      setStatus("Error: " + error.message);
-      return;
-    }
-
     try {
       const res = await fetch("/api/send-email", {
         method: "POST",
@@ -36,14 +18,16 @@ export default function Home() {
       });
 
       if (!res.ok) {
-        throw new Error("Failed to send email");
+        const err = await res.json();
+        setStatus("Error: " + err.message);
+        return;
       }
 
       setStatus("Thanks — you're on the list! A welcome email is on its way 🎉");
       setEmail("");
       setName("");
     } catch (err) {
-      setStatus("Saved! But failed to send email. We'll fix it soon.");
+      setStatus("Something went wrong. Please try again later.");
       console.error(err);
     }
   };
