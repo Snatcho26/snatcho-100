@@ -1,72 +1,73 @@
-'use client';
+"use client";
+
 import React, { useState } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default function Home() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
-  const [status, setStatus] = useState<string | null>(null);
+  const [status, setStatus] = useState("");
 
-  const subscribe = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setStatus("Saving...");
+  const subscribe = async () => {
+    setStatus("Adding you to the waitlist...");
 
-    try {
-      const res = await fetch("/api/send-email", {
+    const { error } = await supabase
+      .from("waitlist")
+      .insert([{ email, name }]);
+
+    if (!error) {
+      await fetch("/api/send-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, name }),
       });
 
-      if (!res.ok) {
-        const err = await res.json();
-        setStatus("Error: " + err.message);
-        return;
-      }
-
-      setStatus("Thanks — you're on the list! A welcome email is on its way 🎉");
+      setStatus("🎉 You're on the list! Check your inbox for a welcome email.");
       setEmail("");
       setName("");
-    } catch (err) {
-      setStatus("Something went wrong. Please try again later.");
-      console.error(err);
+    } else {
+      setStatus("⚠️ Something went wrong. Please try again.");
     }
   };
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center text-center bg-gray-50 text-gray-900 p-6">
-      <img src="/logo.png" alt="Snatcho Logo" className="w-40 mb-6" />
-      <h1 className="text-4xl md:text-6xl font-bold mb-4">Snatch the Best Deals ⚡</h1>
-      <p className="max-w-2xl text-lg md:text-xl mb-8 text-gray-600">
-        Compare prices from Amazon, Flipkart, Blinkit, Zepto & more. Get exclusive discounts and student offers – all in one app.
+    <main className="flex flex-col items-center justify-center min-h-screen px-6">
+      <h1 className="text-4xl font-bold mb-6">Welcome to Snatcho 🚀</h1>
+      <p className="text-lg text-gray-600 mb-8 text-center">
+        Join our waitlist and be the first to know when we launch.
       </p>
 
-      <form onSubmit={subscribe} className="w-full max-w-md bg-white p-6 rounded-2xl shadow-md">
+      <div className="bg-white p-6 rounded-2xl shadow-md w-full max-w-md">
         <input
-          className="w-full mb-3 p-3 rounded border border-gray-300"
+          type="text"
           placeholder="Your name"
           value={name}
-          onChange={e => setName(e.target.value)}
+          onChange={(e) => setName(e.target.value)}
+          className="border p-3 rounded-lg w-full mb-4"
         />
         <input
-          className="w-full mb-3 p-3 rounded border border-gray-300"
-          placeholder="Email"
-          required
-          value={email}
           type="email"
-          onChange={e => setEmail(e.target.value)}
+          placeholder="Your email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="border p-3 rounded-lg w-full mb-4"
         />
-        <div className="flex items-center mb-4 text-sm text-gray-600">
-          <input id="consent" type="checkbox" defaultChecked className="mr-2" />
-          <label htmlFor="consent">I agree to receive emails from Snatcho.</label>
-        </div>
         <button
-          className="w-full rounded-full px-6 py-3 bg-yellow-400 hover:bg-yellow-500 transition text-black font-bold shadow"
-          type="submit"
+          onClick={subscribe}
+          className="bg-purple-600 text-white px-5 py-3 rounded-lg w-full font-semibold hover:bg-purple-700 transition"
         >
-          Join the Waitlist
+          Join Waitlist
         </button>
-        <p className="mt-3 text-sm text-gray-600">{status}</p>
-      </form>
+
+        {status && (
+          <p className="text-center text-sm mt-4 text-gray-700">{status}</p>
+        )}
+      </div>
     </main>
   );
 }
